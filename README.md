@@ -1,4 +1,4 @@
-# Divider_app
+# flutter assets and data handling
 
 Nama: Dimas Mukhtar Yuliawan
 NIM: 2021150068
