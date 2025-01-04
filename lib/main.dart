@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 void main() {
   runApp(const MyApp());
@@ -10,124 +12,110 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Profile App',
+      title: 'Asset and Data Handling App',
       theme: ThemeData(
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: const ProfileScreen(),
+      home: const HomeScreen(),
     );
   }
 }
 
-class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({Key? key}) : super(key: key);
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({Key? key}) : super(key: key);
+
+  @override
+  _HomeScreenState createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  bool _useNetworkAssets = false;
+  late Future<List<dynamic>> _jsonData;
+
+  @override
+  void initState() {
+    super.initState();
+    _jsonData = loadJsonData();
+  }
+
+
+  Future<List<dynamic>> loadJsonData() async {
+    if (_useNetworkAssets) {
+      return loadJsonFromAssets('assets/data/sample_data.json');
+    } else {
+      return loadJsonFromAssets('assets/data/sample_data.json');
+    }
+  }
+
+  Future<List<dynamic>> loadJsonFromAssets(String path) async {
+    final String data = await rootBundle.loadString(path);
+    return jsonDecode(data);
+  }
+
+  Widget loadImage(String imagePath) {
+    return _useNetworkAssets
+        ? Image.network(
+      imagePath,
+      errorBuilder: (context, error, stackTrace) {
+        return const Center(child: Icon(Icons.error));
+      },
+    )
+        : Image.asset(
+      imagePath,
+      errorBuilder: (context, error, stackTrace) {
+        return const Center(child: Icon(Icons.error));
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profile App'),
+        title: const Text('Asset and Data Handling App'),
       ),
       body: SingleChildScrollView(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
             Padding(
               padding: const EdgeInsets.all(16.0),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 50,
-                    backgroundImage: NetworkImage(
-                      'https://ik.imagekit.io/yxctvbjvh/IMG-1734950448885_ENFzcDXjkj.jpg?updatedAt=1734950451539',
-                    ),
-                  ),
-                  const SizedBox(width: 20),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
-                        'Dimas Mukhtar Yuliawan',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text('Software Developer'),
-                    ],
-                  ),
-                ],
+              child: SwitchListTile(
+                title: const Text('Use Network Assets'),
+                value: _useNetworkAssets,
+                onChanged: (bool value) {
+                  setState(() {
+                    _useNetworkAssets = value;
+                    _jsonData = loadJsonData();
+                  });
+                },
               ),
             ),
-
-            // Education Section
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0),
-              child: Text(
-                'Education',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            const ListTile(
-              leading: Icon(Icons.school),
-              title: Text('Bachelor of Computer Science'),
-              subtitle: Text('University Sains Al-Quran, 2021 - present'),
-            ),
-            const ListTile(
-              leading: Icon(Icons.school),
-              title: Text('Senior High School'),
-              subtitle: Text('SMAN 1 Sigaluh, 2018 - 2021'),
-            ),
-
-            const ListTile(
-              leading: Icon(Icons.school),
-              title: Text('Junior High School'),
-              subtitle: Text('SMPN 2 Madukara, 2015 - 2018'),
-            ),
-            // Work Experience Section
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0),
-              child: Text(
-                'Work Experience',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            const ListTile(
-              leading: Icon(Icons.work),
-              title: Text('Software Developer'),
-              subtitle: Text('Singapore, 2026 - present'),
-            ),
-
-            // Hobbies Section
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0),
-              child: Text(
-                'Hobbies',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            const ListTile(
-              leading: Icon(Icons.music_note),
-              title: Text('Listening to Music'),
-            ),
-            const ListTile(
-              leading: Icon(Icons.movie),
-              title: Text('Watching Movies'),
-            ),
-            const ListTile(
-              leading: Icon(Icons.fitness_center),
-              title: Text('Fitness & Gym'),
+            _useNetworkAssets
+                ? loadImage('https://ik.imagekit.io/yxctvbjvh/IMG-1734950448885_ENFzcDXjkj.jpg?updatedAt=1734950451539') // Placeholder URL
+                : loadImage('assets/images/aqil.jpg'),
+            FutureBuilder<List<dynamic>>(
+              future: _jsonData,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                } else if (snapshot.hasError) {
+                  return const Center(child: Icon(Icons.error));
+                } else {
+                  final data = snapshot.data!;
+                  return ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: data.length,
+                    itemBuilder: (context, index) {
+                      final item = data[index];
+                      return ListTile(
+                        title: Text(item['name']),
+                        subtitle: Text(item['email']),
+                      );
+                    },
+                  );
+                }
+              },
             ),
           ],
         ),
